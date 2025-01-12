@@ -518,3 +518,86 @@ mybatis-plus:
 3. 在实现类中继承mp给的实现类
 
 ServiceImpl 是mp给的实现类
+
+### Lambda使用
+
+lambda查询
+
+- list()查询一个集合
+- one()查询单个案例
+- count()总数
+- 分页page
+
+lambda更新
+
+### IService 批量新增
+
+需求：批量插入10万条
+
+- 普通for循环插入
+
+- IService 的批量插入
+- 开启rewriteBatchedStatements=true参数
+
+批处理方案:
+
+- 普通for循环逐条插入速度极差，不推荐
+- MP的批量新增，基于预编译的批处理，性能不错
+- 配置jdbc参数，开rewriteBatchedStatements，性能最好
+
+## 静态工具
+
+`&rewriteBatchedStatemments=true`
+
+![image-20250112180044374](C:\Users\29326\AppData\Roaming\Typora\typora-user-images\image-20250112180044374.png)
+
+## 逻辑删除
+
+**逻辑删除**就是基于代码逻辑模拟删除效果，但并不会真正删除数据。
+
+- 在表中添加一个字段标记数据是否被删除
+- 当删除数据时把标记置为1
+- 查询时只查询标记为0的数据
+
+**MyBatisPlus**提供了逻辑删除功能，无需改变方法调用的方式，而是在底层帮我们自动修改CRUD的语句。我们要做的就是在application.yaml文件中配置逻辑删除的字段名称和值即可：
+
+```yaml
+mybatis-plus:
+	global-config:
+		db-config:
+			logic-delete-field: flag # 全局逻辑删除的实体字段名，字段类型可以是 boolean、integer
+			logic-delete-value: 1 # 逻辑已删除值（默认为1）
+			logic-not-delete-value: 0 # 逻辑未删除值（默认为0）
+```
+
+逻辑删除本身也有问题:
+
+- 会导致数据库表垃圾数量越来越多，影响查询效率
+- SQL中全都需要对逻辑删除字段做判断，影响查询效率
+
+因此，此方法不太推荐进行使用，如果数据不能删除，可以采用把数据迁移到其他表的办法。
+
+## 枚举处理器
+
+![image-20250112205750323](C:\Users\29326\AppData\Roaming\Typora\typora-user-images\image-20250112205750323.png)
+
+如何实现PO类中的枚举类型变量与数据库字段的转换？
+
+1. 给枚举中的与数据库对应value值添加@EnumValue注解
+
+2. 在application.yml中配置全局枚举处理器：
+
+   ```yaml
+   mybatis-plus:
+   	configuration:
+   		default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
+   ```
+
+## JSON处理器
+
+![image-20250112212920848](C:\Users\29326\AppData\Roaming\Typora\typora-user-images\image-20250112212920848.png)
+
+
+
+
+
