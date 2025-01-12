@@ -672,4 +672,253 @@ display(Markdown(reply))
 
 # week2
 
+## day1 start
+
+```python
+# connect to OpenAI, Anthropic and Google 
+# All 3 APIs are similar
+
+openai = OpenAI()
+
+claude = anthropic.Anthropic()
+
+google.generativeai.configure()
+```
+
+## Asking LLMs to tell a joke
+
+It turns out that LLMs don't do a great job of telling jokes! Let's compare a few models. Later we will be putting LLMs to better use!
+
+### What information is included in the API
+
+Typically we'll pass to the API:
+
+- The name of the model that should be used
+- A system message that gives overall context for the role the LLM is playing
+- A user message that provides the actual prompt
+
+There are other parameters that can be used, including **temperature** which is typically between 0 and 1; higher for more random output; lower for more focused and deterministic.
+
+```python
+system_message = "You are an assistant that is great at telling jokes"
+user_prompt = "Tell a light-hearted joke for an audience of Data Scientists"
+```
+
+```python
+prompts = [
+    {"role": "system", "content": system_message},
+    {"role": "user", "content": user_prompt}
+  ]
+```
+
+```python
+# GPT-3.5-Turbo
+
+completion = openai.chat.completions.create(model = 'gpt-3.5-turbo', messages=prompts)
+print(completion.choices[0].content)
+```
+
+```python
+# GPT-4o-mini
+# Temperature setting controls creativity
+
+completion = openai.chat.completions.create(
+	model='gpt-4o-mini',
+    messages=prompts,
+    temperature=0.7
+)
+print(completion.choices[0].content)
+```
+
+```python
+# GPT-4o
+
+completion = openai.chat.completions.create(
+	model='gpt-4o',
+    messages=prompts,
+    temperature=0.4
+)
+print(completion.choices[0].content)
+```
+
+```python
+# claude 3.5 Sonnet
+# API needs system messages provided separately from user prompt
+# Also adding max_tokens
+
+message = claude.messages.create(
+	model="claude-3-5-sonnet-20240620",
+    max_tokens=200,
+    temperature=0.7,
+    system=system_messages,
+    messages=[
+        {"role": "user","content":user_prompt},
+    ],
+)
+
+print(messages.content[0].text)
+```
+
+```python
+# Claude 3.5 Sonnet again
+# Now let's add in streaming back results
+
+result = claude.messages.stream(
+	model="claude-3-5-sonnet-20240620",
+    max_tokens=200,
+    temperature=0.7,
+    system=system_messages,
+    messages=[
+        {"role","user":"content" : user_prompt},
+    ],
+)
+
+with result as stream: // 典型的上下文管理器的用法
+    for text in stream.text_stream:
+        print(text, end="", flush=True) // 设置 end =""表示不添加换行符，而是连续打印内容。
+        // flush = True 表示会强制立即将缓冲区的内容输出到控制台。
+```
+
+```python
+# The API for Gemini has a slightly different structure.
+# I've heard that on some PCs, this Gemini code causes the Kernel to crash.
+# If that happpents to you, please skip this
+
+gemini = google.generativeai.GenerativeModel(
+	model_name='gemini-1.5-flash',
+    system_instruction=system_message
+)
+response = gemini.generate_content(user_prompt)
+print(response.text)
+```
+
+```python
+# As an alternative way to use Gemini that bypasses Google's python API libraty,
+# Google has recently released new endpoints that means you can use Gemini via the client libraries for OpenAI!
+
+gemini_via_openai_client = OpenAI(
+	api_key=google_api_key,
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+)
+
+response = gemini_via_openai_client.chat.completions.create(
+	model="gemini-1.5-flash",
+    messages=prompts
+)
+print(response.choices[0].message.content)
+```
+
+```python
+# Have it stream back results in markdown
+
+stream = openai.chat.completions.create(
+	model='gpt-4o',
+    messages=prompts,
+    temperature=0.7,
+    stream=True
+)
+
+reply =""
+display_handle = display(Markdown(""), display_id=True)
+for chunk in stream:
+    reply += chunk.choices[0].delta.content or ''
+    reply = reply.replace("```","").replace("markdown","")
+    update_display(Markdown(reply), display_id=display_handle.display_id)
+```
+
+## And now for some fun - an adversarial between Chatbots..
+
+You're already familar with prompts being organized into lists like:
+
+```python
+[ 
+    {"role": "system","content"： "system message here"},
+    {"role": "user", "content": "user prompt here"}
+]
+```
+
+In fact this structure can be used to reflect a longer conversation history:
+
+```python
+[
+    {"role": "system", "content": "system message here"},
+    {"role": "user", "content": "first user prompt here"},
+    {"role": "assistant", "content": "the assistant's response"},
+    {"role": "user", "content": "the new user prompt"},
+]
+```
+
+And we can use this approach to engage in a longer interaction with history.
+
+```python
+# Let's make a conversation between GPT-4o-mini and Claude-3-haiku
+# We're using cheap versions of modles so the costs will be minimal
+
+gpt_model = "gpt-4o-mini"
+claude_modle = "claude-3-haiku-20240307"
+
+gpt_system = "You are a chatbot who is very argumentative; \
+you disagree with anything in the conversation and you challenge everything, in a snarky way."
+
+claude_system = "You are a very polite, courteous chatbot. You try to agree with \ everything the other person says, or find common ground. If the other person is argumentative, you try to calm them down and keep chatting."
+
+gpt_messages = ["Hi there"]
+claude_messages = ["Hi"]
+```
+
+```python
+def call_gpt():
+    messages = [{"role": "system", "content": gpt_system}]
+    for gpt, claude in zip(gpt_messages, claude_messages):
+        messages.append({"role": "assistant", "content": "gpt"})
+        messages.append({"role": "user", "content": claude})	completion = openai.chat.completions.create(
+        model = gpt_model,
+        messages = messages)
+        return completion.choices[0].content
+```
+
+zip函数
+
+- 作用：
+  - zip 是 Python内置函数，用于将多个可迭代对象（如列表，元组等）“并行”打包成元组。
+  - 每次从多个迭代对象中分别去除一个元素，组合成一个元素，形成一个新的可迭代对象。
+  - 如果多个可迭代对象的长度不同，则会以最短的那个为准，忽略多余的元素。
+
+```python
+def call_claude():
+    messages = []
+    for gpt, claude_messages in zip(gpt_messages, claude_messages):
+        messages.append({"role": "user", "content": gpt})
+        messages.append({"role": "assistant", "content": claude_message})													messages.append({"role": "user", "content: gpt_messages[-1]"})												messgae = claude.messages.create(
+        model = claude_model,
+        system=claude_system,
+        messages=messages,
+        max_tokens = 500)										return messages.content[0].text
+```
+
+```python
+gpt_messages = ["Hi there"]
+claude_messages = ["Hi"]
+
+print(f"GPT:\n{gpt_messages[0]}\n")
+print(f"Claude:\n{claude_messages[0]}\n")
+
+for i in range(5):
+    gpt_next = call_gpt()
+    print(f"GPT:\n{gpt_next}\n")
+    gpt_messages.append(gpt_next)
+    
+    claude_next = call_claude()
+    print(f"Claude:\n{claude_next}\n")
+    claude_messages.append(claude_next)
+```
+
+## day2 总结
+
+What can i already do
+
+- Describe transformers and the leading 6 Frontier LLMs
+- Confidently use the OpenAI API including streaming with markdown and JSON generation
+- Use the Anthropic and Google APIs
+
 # week3
