@@ -64,7 +64,7 @@ api_key = os.getenv('OPENAI_API_KEY')
 
 if not api_key:
     print("No API key was found - please head over to the troubleshooting notebook in this folder to identify & fix!")
-elif not api_key.startswith("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"):
+elif not api_key.startswith(""):
     print("An API key was found, but it doesn't start sk-proj-; please check you're using the right key - see troubleshooting notebook")
 elif api_key.strip() != api_key:
     print("An API key was found, but it looks like it might have space or tab characters at the start or end - please remove them - see troubleshooting notebook")
@@ -646,7 +646,7 @@ messages = [
 
 # get chatGPT with stream
 
-stream = openai.chat.complate.create(
+stream = openai.chat.completions.create(
 	model = MODEL_GPT,
     messages = messages,
     stream = True
@@ -913,12 +913,146 @@ for i in range(5):
     claude_messages.append(claude_next)
 ```
 
-## day2 总结
+## day1 总结
 
 What can i already do
 
 - Describe transformers and the leading 6 Frontier LLMs
 - Confidently use the OpenAI API including streaming with markdown and JSON generation
 - Use the Anthropic and Google APIs
+
+## day2 start
+
+## day2 总结
+
+what can i already do
+
+- Confidently use the OpenAI API including streaming with markdown and JSON generation
+- Use the Anthropic and Google APIs
+- Build UIs for your solutions
+
+## day3 start
+
+## Conversational AI - aka Chatbot!
+
+```python
+# imports
+
+import os
+from dotenv import load_dotenv
+from openai import OpenAI
+import gradio as gr
+```
+
+```python
+# Load enviroment variables in a life called .env
+# Print the key prefixes to help with any debugging
+
+load_dotenv()
+openai_api_key = os.getenv('OPENAI_API_KEY')
+anthropic_api_key = os.getenv('ANTHROPIC_API_KEY')
+google_api_key = os.getenv('GOOGLE_API_KEY')
+
+if openai_api_key:
+    print(f"OpenAI API Key exists and begins {openai_api_key[:8]}")
+else:
+    print("OpenAI API Key not set")
+if anthropic_api_key:
+    print(f"Anthropic Api Key exists and begins {anthropic_api_key[:7]}")
+else:
+    print(f"Anthropic Api Key not Set")
+if google_api_key:
+    print(f"Google Api Key exists and begins {google_api_key[:8]}")
+else:
+    print("Google Api Key not set")
+```
+
+```python
+# Initialize
+
+openai = OpenAI()
+MODEL = 'gpt-4o-mini'
+```
+
+```python
+system_message = "You are a helpful assistant"
+```
+
+### Reminder of the structure of prompt messages to OpenAI:
+
+```python
+[
+    {"role": "system","content": "system message here"},
+    {"role": "user", "content": "first user prompt here"},
+    {"role": "assistant", "content": "the assistant's response"},
+    {"role": "user", "content": "the new user prompt"},
+]
+
+//We will write a function ``chat(message, history)`` //where:messgae is the prompt to use history is a list of pairs of user message with assistant's reply
+[
+    ["user said this", "assistant replied"],
+    ["then user said this", "and assistant replied again"],
+    ...
+]
+```
+
+```python
+def chat(message, history):
+    messagess = [{"role":"system", "content" :system_message}]
+    for user_message, assistant in  history:
+        messages.append({"role": "user", "content": user_message})
+        messages.append({"role": "assistant", "content": assistant_message})
+    messages.append({"role" :"user", "content":message})
+    
+    print("History is:")
+    print(history)
+    print("And messages is:")
+    print(messages)
+    
+    stream = openai.chat.completions.create(model = MODEL, messages = messages, stream=True)
+    response =""
+    for chunk in stream:
+        response += chunk.choices[0].delta.content or ''
+        yield response
+```
+
+And then enter Gradio's magic
+
+```python
+gr.ChatInterface(fn=chat, type="messages").launch()
+```
+
+Other fun
+
+```python
+system_message = "You are a helpful assistant in a clothes store. You should try to gently encourage \
+the customer to try items that are on sale. Hats are 60% off, and most other items are 50% off. \
+For example, if the customer says 'I'm looking to buy a hat', \
+you could reply something like, 'Wonderful - we have lots of hats - including several that are part of our sales evemt.'\
+Encourage the customer to buy hats if they are unsure what to get."
+
+def chat(message, history):
+    messages = [{"role": "system", "content": system_message}] + history + [{"role": "user", "content": message}]
+    
+    stream = openai.chat.completions.create(model=MODEL,messages=messages, stream=True)
+    response = ""
+    for chunk in stream:
+        response += chunk.choices[0].delta.content or ''
+        yield response
+```
+
+```python
+gr.ChatInterface(fn=chat, type="messages").launch()
+```
+
+
+
+## day3 总结
+
+what can i already do
+
+- Describe transformers and explain key terminolgy
+- Confidently code with the APIs for GPT, Claude and Gemini
+- Build an AI Chatbot Assistant including an interactive UI
 
 # week3

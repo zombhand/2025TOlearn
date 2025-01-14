@@ -599,5 +599,52 @@ mybatis-plus:
 
 
 
+## 内置拦截器
 
+![image-20250114095443578](C:\Users\29326\AppData\Roaming\Typora\typora-user-images\image-20250114095443578.png)
 
+### 分页插件
+
+1. 实现分页的配置
+
+   ```java
+   @Configuration
+   public class MyBatisConfig {
+   	
+       @Bean
+       public MybatisPlusInterceptor mybatisPlusInterceptor() {
+           MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
+           // 1.添加分页插件
+           PaginationInnerIntercepotr paginationInnerInterceptor = new PaginationInnerInterceptor(DbType.MYSQL);
+           paginationInnerInterceptor.setMaxLimit(1000L);
+           
+           // 2.添加分页插件
+           interceptor.addInnerInterceptor(paginationInnerInterceptor);
+           return interceport;
+       }
+   }
+   
+   ```
+
+2. 调用分页功能
+
+   ```java
+   int pageNo = 1, pageSize = 2;
+   
+   // 1.准备分页条件
+   // 1.1 分页条件
+   Page<User> page = Page.of(pageNo, PageSize);
+   // 1.2 排序条件
+   page.addOrder(new OrderItem("balance", true));
+   page.addOrder(new OrderItem("id", true));
+   
+   // 2.分页查询
+   Page<User> p = userService.page(page);
+   
+   // 3.解析
+   long total = p.getTotal();
+   long pages = p.getPages();
+   List<User> users = p.getRecords();
+   ```
+
+   
