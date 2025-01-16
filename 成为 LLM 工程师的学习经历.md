@@ -6,6 +6,12 @@ MODEL
 
 openai = OpenAI(base_url=, api_key=)
 
+# 遇到的软件安装
+
+ffmpeg安装先下载源码
+
+然后使用`choco install ffmpeg-full`进行编译
+
 # week1
 
 ## day1 start
@@ -1227,5 +1233,372 @@ What can i do now
 - Describe transformers and explain key terminology
 - Confidently code with the APIs for GPT, Claude and Gemini
 - Build an Ai Assistant using Tools for enhanced expertise
+
+## day5 start
+
+DEFINING AGENTS(代理)
+
+**Software(软件) entities(实体) that can autonomously(自主的) perform tasks**
+
+
+
+Common characteristics(特质) of Agent
+
+- Autonomous
+- Goal-oriented
+- Task specific
+
+Designed(有计划的) to work as part of an Agent Framework to solve(解决) complex(复杂的) problems with limited human invelvement
+
+- Memory/persistence(持久层)
+- Decision-making/orchestration
+- Planning capabilities
+- Use of tools;potentially(可能的) connecting to databases or the internet
+
+**What we are about to do**
+
+- **Image Generation**
+  - Use the OpenAI interface to generate images
+- **Make Agents**
+  - Create Agents generate sound and images
+- **Make an Agent Framework**
+  - Teach our AI Assistant to speak and draw
+
+**Project - Airline AI Assistant**
+
+We'll now bring together what we've learned to make an AI Customer(顾客) Support  assistant(助手) for an Airline
+
+```python
+# imports 
+
+import os
+import json
+from dotenv import load_dotenv
+from openai import OpenAI
+import gradio as gr
+```
+
+```python
+# Initialization
+
+load_dotenv()
+
+openai_api_key = os.getenv('OPENAI_API_KEY')
+if openai_api_key:
+    print(f"OpenAI API Key exists and begins {openai_api_key[:8]}")
+else:
+    print("OpenAI API Key not set")
+    
+MODEL = "gpt-4o-mini"
+openai = OpenAI()
+```
+
+```python
+system_message = "You are a helpful assistant for an Airline called FlightAI. "
+system_message += "Give short, courteous answers, no more than 1 sentence. "
+system_message += "Always be accurate. If you don't know the answer, say so."
+```
+
+```python
+def chat(message, history):
+    messages = [{"role": "system", "content": system_message}] + history + [{"role": "user", "content": message}]
+    response = openai.chat.completions.create(model=MODEL, messages=messages)
+    return response.choices[0].message.content
+gr.ChatInterface(fn=chat, type="messages").launch()
+```
+
+## Tools
+
+Tools are an incredibly powerful feature provided by the frontier LLMs.
+
+With tools, you can write a function, and have the LLM call that function as part of its response.
+
+Sounds almost spooky.. we're giving it the power to run code on our machine?
+
+Well, kinda.
+
+```python
+# Let's start by making a useful function
+
+ticket_prices = {"london": "$799", "paris": "$899", "tokyo": "$1400", "berlin": "$499"}
+
+def get_ticket_price(destination_city):
+    print(f"Tool get_ticket_price called for {destination_city}")
+    city = destination_city.lower()
+    return ticket_prices.get(city, "Unknown")
+```
+
+```python
+# There's a particular dicitionary structure that's required to describe our function:
+
+price_function = {
+    "name": "get_ticket_price",
+    "description": "Get the price of a return ticket to the destination city. Call this whenever you need to know the ticket price, for example when a customer asks 'How much is a ticket to this city'",
+    "parameters": {
+        "destination_city": {
+            "type": "string",
+            "description": "The city that the customer wants to travel to",
+        },
+    },
+    "required": ["destination_city"],
+    "additionalProperties": False
+}
+```
+
+```python
+# And this is included in a list of tools:
+
+tools = [{"type": "function": price_function}]
+```
+
+**Getting OpenAI to use our Tool**
+
+There's some fiddly stuff to allow OpenAI "to call our tool"
+
+What we actually do is give the LLM the opportunity to inform us that it wants us to run the tool.
+
+Here's how the new chat function looks:
+
+```python
+def chat(message, history):
+    messgae = [{"role": "system", "content": system_message}] + history + [{"role": "user", "content": message}]
+    response = openai.chat.completions.create(model=MODEL, messages=messages, tools=tools)
+    
+    if response.choices[0].finish_reason="tool_calls":
+        message = response.choices[0].message
+        response, city = handle_tool_call(message)
+        messages.append(message)
+        messages.append(response)
+        response = openai.chat.completions.create(model=MODEL, messages=messages)
+     
+    return respnse.choices[0].message.content
+```
+
+```python
+# We have to write that function handle_tool_call:
+
+def handle_tool_call(message):
+    tool_call = message.tool_calls[0]
+    arguments = json.loads(tool_call.function.arguments)
+    city = arguments.get('destination_city')
+    price = get_ticket_price(city)
+    response = {
+        "role": "tool",
+        "content": json.dumps({"destination_city": city,"price": price}),
+        "tool_call_id": tool_call.id
+    }
+    return response, city
+```
+
+```python
+gr.ChatInterface(fn=chat, type="messages").launch()
+```
+
+接下来去构建绘画模型
+
+```python
+# Some imports for handling images
+
+import base64
+from io import BytesIO
+from PIL import Image
+```
+
+```python
+def artist(city):
+    image_response = openai.images.generate(
+    	model="dall-e-3",
+        prompt=f"An image representing a vacation in {city}, showing tourist spots and everything unique about {city}, in a vibrant pop-art style",
+        size="1024*1024",
+        n=1,
+        response_format="b64_json",
+    )
+    image_base64 = image_response.data[0].b64_json
+    image_data = base64.b64decode(image_base64)
+    return Image.open(BytesIO(image_data))
+```
+
+**Audio**
+
+And let's make a function talker that uses OpenAI's speech model to generate Audio
+
+Trouleshooting(故障排除) Audio issues
+
+Variation 1
+
+```python
+import base64
+from io import BytesIO
+from PIL import Image
+from IPython.display import Audio, display
+
+def talker(message):
+    response = openai.audio.speech.create(
+    	model="tts-1",
+        voice="onyx",
+        input=message
+    )
+    audio_stream = BytesIO(response.content)
+    output_filename = "output_audio.mp3"
+    with open(output_filename, "wb") as f:
+        f.write(audio_stream.read())
+        
+    # Play the generated audio
+    display(Audio(output_filename, autoplay=True))
+    
+talker("Well, hi there")
+```
+
+Variation 2
+
+```python
+import tempfile
+import subprocess
+from io import BytesIO
+from pydub import AudioSegment
+import time
+
+def play_audio(audio_segment):
+    temp_dir = tempfile.gettempdir()
+    temp_path = os.path.join(temp_dir, "temp_audio.wav")
+    try:
+        audio_segment.export(temp_path, format="wav")
+        subprocess.call([
+            "ffplay",
+            "-nodisp",
+            "-autoexit",
+            "-hide_banner",
+            temp_path
+        ], studot=suprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    finally:
+        try:
+            os.remove(temp_path)
+        excpt Exception:
+            pass
+        
+def talker(message):
+    response = openai.audio.speech.create(
+    	model="tts-1",
+        voice="onyx", # Also, try replacing onyx with alloy
+        input=message
+    )
+    audio_stream = BytesIO(response.content)
+    audio = AudioSement.from_file(audio_stream, format="mp3")
+    play_audio(audio)
+    
+talker("Well hi there")
+```
+
+Variation 3
+
+Let's try a completely different sound library
+
+First run the next cell to install a new library, then try the cell below it.
+
+`!pip install simpleaudio`
+
+```python
+from pydub import AudioSegment
+from io import BytesIO
+import tempfile
+import os
+import simpleaudio as sa
+
+def talker(message):
+    response = openai.audio.speech.create(
+    	model="tts-1",
+        voice="onyx", #Also, try replacing onyx with alloy
+        input=message
+    )
+    
+    audio_stream = BytesIO(response.content)
+    audio = AudioSegment.from_file(audio_stream, format="mp3")
+    
+    # Create a temporary file in a folder where you have write permissions
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False, dir = os.path.expanduser("~/Documents")) as temp_audio_file:
+        temp_file_name = temp_audio_file.name
+        audio.export(temp_file_name, format="wav")
+        
+    # Load and play audio using simpleaudio
+    wave_obj = sa.WaveObject.from_wave_file(temp_file_name)
+    play_obj = wave_obj.play()
+    play_obj.wait_done() # Wait for playback to finish
+    
+    # Clean up the temporary file afterward
+    os.remove(temp_file_name)
+talker("Well hi there")
+```
+
+# Our Agent Framework
+
+The term 'Agentic AI' and Agentization is an umbrella term that refers to a number of techniques, such as:
+
+1. Breaking a complex problem into smaller steps, with multiple LLMs carrying out specialized tasks
+2. The ability for LLMs to use Tools to give them additional capabilities
+3. The 'Agent Environment' which allows Agents to collaborate
+4. An LLM can act as the Planner, dividing bigger tasks into smaller ones for the specialists
+5. The concept of an Agent having autonomy / agency, beyond just responding to a prompt - such as Memory
+
+We're showing 1 and 2 here, and to a lesser extent 3 and 5. In week 8 we will do the lot!
+
+```python
+def chat(history):
+    messages = [{"role": "system", "content": system_message}] + history
+    response = openai.chat.completions.create(model=MODEL, messages=messages, tools=tools)
+    image = None
+    
+    if response.choices[0].finish_reason=="tool_calls":
+        message = response.choices[0].message
+        response, city= handle_tool_call(message)
+        messages.append(message)
+        messages.append(response)
+        imapge = artist(city)
+        response = openai.chat.completions.create(model=MODEL, messages=messages)
+        
+    reply = resopnse.choices[0].message.content
+    history += [{"role":"assistant", "content":reply}]
+    
+    # Comment out or delete the next line if you'd rather skip Audio for now..
+    talker(reply)
+    
+    return history, image
+```
+
+```python
+# More involved Gradio code as we're not using the preset Chat interface!
+# Passing in inbrowser=True in the last line will cause a Gradio window to pop up immediately.
+
+wit gr.Blocks() as ui:
+    with gr.Row():
+        chatbot= gr.Chatbot(height=500, type="messages")
+        image_output = gr.Image(height=500)
+    with gr.Row():
+        entry = gr.Textbox(label="Chat with our AI Assistant:")
+    with gr.Row():
+        clear = gr.Button("Clear")
+        
+    def do_entry(message, history):
+        history += [{"role":"user", "content":message}]
+        return "", history
+    
+    entry.submit(do_entry, inputs=[entry, chatbot], outputs=[entry, chatbot]).then(
+    	chat, inputs=chatbot, outputs=[chatbot, image_output]
+    )
+    clear.click(lamba: None, inputs=None, outputs=chatbot, queue=False)
+
+ui.launch(inbrowser=True)
+```
+
+
+
+## day 5 总结
+
+What can i now do
+
+- Describe transformers and explain key terminology
+- Confidently code with the APIs for GPT, Claude and Gemini
+- Build a multi-modal AI Assistant with UI, Tools, Agents
+
+
 
 # week3
