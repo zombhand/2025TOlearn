@@ -1,5 +1,11 @@
 # 成为 LLM 工程师的学习经历
 
+# 使用非官网的方法
+
+MODEL
+
+openai = OpenAI(base_url=, api_key=)
+
 # week1
 
 ## day1 start
@@ -1054,5 +1060,172 @@ what can i already do
 - Describe transformers and explain key terminolgy
 - Confidently code with the APIs for GPT, Claude and Gemini
 - Build an AI Chatbot Assistant including an interactive UI
+
+## day 4 start
+
+## Tools
+
+Allows Frontier models to connect with external functions
+
+- Richer(更富有的) responses by extending knowledge
+- Ability to carry out actions within the application
+- Enhanced(增强) capabilities (能力)，like calculations(计算机)
+
+How it works
+
+- In a request to the LLM, specify available Tools
+- The reply(答复) is either(要么是) Text,or a request to run a Tool
+- We run the Tool and call the LLM with the results
+
+**Common Use Cases For Tools**
+
+Function Calls can enable assistants to：
+
+- Fetch data or add
+- Take action like booking
+- Perform calculations
+- Modify the UI
+
+构建一个知情的航空公司客户支持代理
+
+```python
+# import
+
+import os
+import json
+from dotenv import load_dotenv
+from openai import OpenAI
+import gradio as gr
+```
+
+```python
+# Initiallization
+
+load_dotenv()
+
+openai_api_key = os.getenv('OPENAI_API_KEY')
+if openai_api_key :
+    print(f"OpenAI API Key exists and begins {openai_api_key[:8]}")
+else:
+    print("OpenAI API Key not set")
+    
+MODEL = "gpt-4o-mini"
+openai = OpenAI()
+
+# As an alternative, if you'd like to use Ollama instead of OpenAI
+# Check that Ollama is running for you locally 
+MODEL = "llama3.2"
+openai = OpenAI(base_url='http://localhost:11434/v1', api_key='ollama')
+```
+
+```python
+system_message = "You ar a helpful assistant for an Airline called FlightAI."
+system_message += "Give short, courteous answers, no more than 1 sentence."
+system_message += "Always be accurate. If you don't konw the answer, say so."
+```
+
+```python
+def chat(message, history):
+    messages = [{"role": "system", "content": system_message}] + history + [{"role" : "user", "content" : message}]
+    response = openai.chat.completions.create(modle=MODEL, messages=messages)
+    return response.choices[0].message.content
+gr.ChatInterface(fn=chat, type="messages").launch()
+```
+
+**Tools**
+
+Tools are an incredibly powerful feature provided by the frontier LLMs.
+
+With tools, you can write a function, and have the LLM call that function as part of its response.
+
+Sounds almost spooky.. we're giving it the power to run code on our machine?
+
+```python
+# Let's start by making a useful function
+
+ticket_prices = {"london": "$799", "paris": "$899","tokyo": "$1400", "berlin": "$499"}
+
+def get_ticket_price(destination_city):
+    print(f"Tool get_ticket_price called for {destination_city}“)
+    city = destination_city.lower()
+    return ticket_prices.get(city, "Unknown")
+```
+
+```python
+# There's a particular dictionary structure that's required to describe our function:
+
+price_funtion = {
+    "name": "get_ticket_price",
+    "description": "Get the price of a return ticket to the destination city. Call this whenever you need to konw the ticket price, for example when a customer asks 'How much is a ticket to this city'",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "destination_city": {
+                "type": "string",
+                "description": "The city that the customer wants to travel to",
+            },
+        },
+        "required": ["destination_city"],
+        "additionalProperties": False
+    }
+}
+```
+
+```python
+# And this is included in a list of tools:
+
+tools = [{"type": "function", "function": price_function}]
+```
+
+**Getting OpenAI to use our Tool**
+
+There's some fiddly stuff to allow OpenAI "to call our tool"
+
+What we actually do is give the LLM the opportunity to inform us that it wants us to run the tool.
+
+Here's how the new chat function looks:
+
+```python
+def chat(message, history):
+    messages = [{"role": "system", "content": system_message}] + hsitory + [{"role": "user", "content": message}]
+    response = openai.chat.completions.create(model=MODEL, messages=messages, tools=tools)
+    
+    if response.choices[0].finish_reason=="tool_calls":
+        message = response.choices[0].message
+        response, city = handle_tool_call(message)
+        messages.append(message)
+        messages.append(response)
+        response = openai.chat.completions.create(model=MODEL, messages=messages)
+        
+        return response.choices[0].message.content
+```
+
+```python
+# We have to write that function handle_tool_call:
+
+def handle_tool_call(message):
+    tool_call = message.tool_calls[0]
+    arguments = json.loads(tool_call.function.arguments)
+    city = arguments.get('destination_city')
+    price = get_ticket_price(city)
+    response = {
+        "role": "tool",
+        "content": json.dumps({"destination_city": city, "price": price}),
+        "tool_call_id" : tool_call.id
+    }
+    return response, city
+```
+
+```
+gr.ChatInterface(fn= chat, type = "messages").launch()
+```
+
+## day4 总结
+
+What can i do now
+
+- Describe transformers and explain key terminology
+- Confidently code with the APIs for GPT, Claude and Gemini
+- Build an Ai Assistant using Tools for enhanced expertise
 
 # week3
