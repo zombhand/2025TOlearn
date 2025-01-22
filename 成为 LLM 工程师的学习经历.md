@@ -12,7 +12,29 @@ ffmpeg安装先下载源码
 
 然后使用`choco install ffmpeg-full`进行编译
 
-# week1
+# Colab
+
+!pip install tensorflow
+
+# How to Pick the Right AI Foundation Model（如何选择合适的AI模型）
+
+1. 清楚地阐明模型的用例。
+
+2. 列出一些相关的模型。
+
+3. 确定模型的大小，性能成本、风险和部署方法。
+
+4. 根据具体用例评估这些模型特征。 
+
+   1. 准确度（生成的输出和期望输出的接近程度，而且可以通过选择与用例相关的评估指标来客观、重复地测量它。）
+   2. 可靠性（一致性、可解析性、可信性）-》信任 -》通过训练数据的透明度和可追溯性，以及输出的准确性和可靠性建立起来的。
+   3. 速度
+
+   速度和准确度需要权衡。
+
+5. 进行测试。（确定是否可行，然后使用指标评估模型、性能和输出质量。）
+
+6. 选择提供最大价值的架构。
 
 ## day1 start
 
@@ -1602,3 +1624,725 @@ What can i now do
 
 
 # week3
+
+## day1 start
+
+**HuggingFace Platform**
+
+The ubiqutious(无处不在的) platform for LLM Engineers 
+
+- Models
+
+  Over 800,000 Open Source Models of all shapes and sizes
+
+- Datasets
+
+  A treasure  trove of 200,000 datasets
+
+- Spaces
+
+  Apps,many built in Gradio,including Leaderboards
+
+**HuggingFace Libraries**
+
+And the astonishing(令人震惊) leg up we get from them
+
+- hub
+- datasets
+- transformers
+- peft
+- trl
+- accelerate
+
+ 
+
+GOOGLE COLAB
+
+**Code on a powerful GPU box**
+
+
+
+Google Colab
+
+- Run a Jupyter notebook in the cloud with a powerful runtime
+- Collaborate(合作) with others
+- Integrate with other Google services
+
+Runtimes
+
+1. CPU based
+2. Lower spec GPU runtimes for lower cost
+3. Higher spec GPU runtimes for resource intensive runs
+
+## Day 1 总结
+
+What can i now do
+
+- Confidently code with Frontier Models
+- Build a multi-modal AI Assistant with Tools
+- Navigate the HuggingPlace platform; run code on Colab
+
+## Day 2 start
+
+**The Two API Levels of Hugging Face**
+
+- **Pipelines**
+
+  Higher lever APIs to carry out standard tasks incredibly quickly
+
+- **Tokenizers and Models**
+
+  Lower level APIs to provide the most power and control
+
+**Pipelines are incredibly versatile and simple**
+
+Unleash the power of open-source models in your solutions in 2 lines of code
+
+- Sentiment analysis
+- Classifier
+- Named Entity Recognition
+- Question Answering
+- Summarizing
+- Translation
+
+Use pipelines to generate content
+
+- Text
+- Image
+- Audio
+
+## Welcome to PipeLines
+
+The HuggingFace transformers library provides APIs at two different levels.
+
+The High-Level API for using open-source models for typical inference tasks is called "pipelines".It's incredibly easy to use.
+
+You create a pipeline using something like:
+
+`my_pipeline = pipeline("the_task_I_want_to_do")`
+
+Followed by
+
+`result = my_pipeline(my_input)`
+
+And that's it!
+
+See the end of this colab for a list of all pipelines.
+
+## A side note:
+
+You may already know this, but just in case you're not familiar with the word "inference" that I use here:
+
+When working with Data Science models, you could be carrying out 2 very different activities: training and inference.
+
+1. Training
+
+   Training is when you provide a model with data to adapt to improve at a task in the future. It does this by updating its internal setting -the parameters or weights of the model. If you're Training a model that's already had some training, the activity is called "fine-tuning".
+
+2. Inference
+
+   **Inference** is when you are working with a model that has already been trained. You are using that model to produce new outputs on new inputs, taking advantage of everything it learned while it was being trained. The inference is also sometimes referred to as "Execution" or "Running a model".
+
+   All of our use of APIs for GPT, Claude, and Gemini in the last weeks are examples of **inference**. The "P" in GPT stands for "Pre-trained", meaning that it has already been trained with data (lots of it!) In week 6 we will try fine-tuing GPT ourselves.
+
+   The pipelines API in HuggingFace is only for use for **inference** - running a model that has already been trained. In week 7 we will be training our own model, and we will need to use the more advanced HuggingFace APIs that we look at in the up-coming lecture.
+
+```python
+!pip install -q transformers datasets diffusers
+```
+
+```python
+# Imports
+
+
+from google.colab import userdata
+from huggingface_hub import login
+from transformers import pipeline
+from diffusers import DiffusionPipeline
+from datasets import load_dataset
+import soundfile as sf
+from IPython.display import Audio
+```
+
+```python
+hf_token = userdata.get('HF_TOKEN')
+login(hf_token, add_to_git_credential=True)
+```
+
+```python
+# Sentiment Analysis(情感分析)
+
+classifier = pipeline("sentiment-analysis", device="cude")
+result = classifier("I'm super excited to be on the way to LLM mastery!")
+print(result)
+```
+
+```python
+# Named Entity Recognition
+
+ner = pipeline("ner", grouped_entities=True, device="cuda")
+result = ner("Barack Obamam was the 44th president of the United States.")
+print(result)
+```
+
+```python
+# Question Answering with Context
+
+question_answerer = pipeline("question-answering", device"cuda")
+result = question_answerer(question="Who was the 44th president of the United States?", context="Barack Obama was the 44th president of the United States.")
+print(result)
+```
+
+```python
+# Text Summarization
+
+summarizer = pipeline("summarization", device="cuda")
+text = """The Hugging Face transformers library is an incredibly versatile and powerful tool for natural language processing (NLP).
+It allows users to perform a wide range of tasks such as text classification, named entity recognition, and question answering, among others.
+It's an extremely popular library that's widely used by the open-source data science community.
+It lowers the barrier to entry into the field by providing Data Scientists with a productive, convenient way to work with transformer models."""
+summary = summarizer(text, max_length=50, min_length=25, do_sample = False)
+print(summary[0]['summary_text'])
+```
+
+```python
+# Translation
+
+translator = pipeline("translation_en_to_fr", device="cuda")
+result = translator("The Data Scientists were truly amazed by the power and simplicity of the HuggingFace pipeline API.")
+print(result[0]['translation_text'])
+```
+
+```python
+# Another translation, showing a model being specified
+# All translation models are here:https://huggingface.co/models?pipeline_tag=translation&sort=trending
+
+translator = pipeline("translation_en_to_es", model="Helsinki-NLP/opus-mt-en-es", device="cuda")
+result = translator("The Data Scientists were truly amazed by the power and simplicity of the HuggingFace pipiline API.")
+print(result[0]['translation_text'])
+```
+
+```python
+# Classification
+
+classifier = pipeline("zero-shot-classification", device="cuda")
+result = classifier("Hugging Face's Transformers library is amazing!", candidate_labels=["technology", "sports","politics"])
+print(result)
+```
+
+```python
+# Text Generation
+
+generator = pipeline("text-generation", device="cuda")
+result = generator("If there's one thing I want you to remeber about using HuggingFace pipelines, it's")
+print(result[0]['generated_text'])
+```
+
+```python
+# Image Generation
+
+image_gen = DiffusionPipeline.from_pretrained(
+	"stabilityai/stable-diffusion-2",
+    torch_dtype=torch.float16,
+    use_safetensors=True,
+    variant="fp16"
+    ).to("cuda")
+text = "A class of Data Scientists learning about AI, in the surreal style of Salvador Dali"
+image = image_gen(prompt=text).images[0]
+image
+```
+
+```python
+# Audio Generation
+
+synthesiser = pipeline("text-to-speech", "microsoft/speecht5_tts", device='cuda')
+
+embeddings_dataset = load_dataset("Matthijs/cmu-arctic-xvectors", split="validation")
+speaker_embedding = torch.tensor(embeddings_dataset[7306]["xvector"]).unsqueeze(0)
+
+speech = synthesiser("Hi to an artificial intelligence engineer, on the way to mastery!", forward_params={"speaker_embeddings": speaker_embedding})
+
+sf.write("speech.wav", speech["audio"], samplerate=speech["sampling_rate"])
+Audio("speech.wav")
+```
+
+## All the available pipelines
+
+Here are all the pipelines available from Transformers and Diffusers.
+
+With thanks to student Lucky P for suggesting I include this!
+
+There's a list pipelines under the Tasks on this page (you have to scroll down a bit, then expand the parameters to see the Tasks):
+
+[https://huggingface.co/docs/transformers/main_classes/pipelines](https://www.google.com/url?q=https%3A%2F%2Fhuggingface.co%2Fdocs%2Ftransformers%2Fmain_classes%2Fpipelines)
+
+There's also this list of Tasks for Diffusion models instead of Transformers, following the image generation example where I use DiffusionPipeline above.
+
+[https://huggingface.co/docs/diffusers/en/api/pipelines/overview](https://www.google.com/url?q=https%3A%2F%2Fhuggingface.co%2Fdocs%2Fdiffusers%2Fen%2Fapi%2Fpipelines%2Foverview)
+
+
+
+
+
+
+
+
+
+## Day 2 总结
+
+What can I now do
+
+- Confidently code with Frontier Models.
+- Build a multi-model AI Assistant with Tools.
+- Use HuggingFace pipelines for a wide variety of inference(推论) tasks.
+
+## Day 3start
+
+**Introducing the Tokenizer**
+
+Maps between Text and Tokens for a particular model
+
+- Translates between Text and Tokens with encode() and decode() methods
+- Contains a Vocab that can include special tokens to signal information to the LLM, like the start of prompt
+- Can include a Chat Template that knows how to format  a chat message for this model
+
+## Tokenizers
+
+For this Colab session, we explore the world of Tokenizers
+
+You can run this notebook on a free CPU, or locally on your box if you prefer.
+
+```python
+from google.colab import userdata
+from huggingface_hub import login
+from transformers import AutoTokenizer
+```
+
+## Sign in to Hugging Face
+
+1. If you haven't already done so, create a free HuggingFace account at [https://huggingface.co](https://www.google.com/url?q=https%3A%2F%2Fhuggingface.co) and navigate to Settings, then Create a new API token, giving yourself write permissions
+
+**IMPORTANT** when you create your HuggingFace API key, please be sure to select read and write permissions for your key, otherwise you may get problems later.
+
+1. Press the "key" icon on the side panel to the left, and add a new secret: `HF_TOKEN = your_token`
+2. Execute the cell below to log in.
+
+```python
+hf_token = userdata.get('HF_TOKEN')
+login(hf_token, add_to_git_credential=True)
+```
+
+## Accessing Llama 3.1 from Meta
+
+In order to use the fantastic Llama 3.1, Meta does require you to sign their terms of service.
+
+Visit their model instructions page in Hugging Face: [https://huggingface.co/meta-llama/Meta-Llama-3.1-8B](https://www.google.com/url?q=https%3A%2F%2Fhuggingface.co%2Fmeta-llama%2FMeta-Llama-3.1-8B)
+
+At the top of the page are instructions on how to agree to their terms. If possible, you should use the same email as your huggingface account.
+
+In my experience approval comes in a couple of minutes. Once you've been approved for any 3.1 model, it applies to the whole family of models.
+
+If the next cell gives you an error, then please check:
+
+1. Are you logged in to HuggingFace? Try running `login()` to check your key works
+2. Did you set up your API key with full read and write permissions?
+3. If you visit the Llama3.1 page with the link above, does it show that you have access to the model near the top?
+
+I've also set up this troubleshooting colab to try to diagnose any HuggingFace connectivity issues:
+https://colab.research.google.com/drive/1deJO03YZTXUwcq2vzxWbiBhrRuI29Vo8?usp=sharing
+
+```python
+tokenizer = AutoTokenizer.from_pretrained('meta-llama/Meta-Llama-3.1-8B', trust_remote_code=True)
+```
+
+```python
+text = "I am excited to show Tokenizers in action to my LLM engineers"
+tokens = tokenizer.encode(text)
+tokens
+
+[128000,
+ 40,
+ 1097,
+ 12304,
+ 311,
+ 1501,
+ 9857,
+ 12509,
+ 304,
+ 1957,
+ 311,
+ 856,
+ 445,
+ 11237,
+ 25175]
+```
+
+```python
+len(tokens)
+15
+```
+
+```python
+tokenizae.decode(tokens)
+<|begin_of_text|>I am excited to show Tokenizers in action to my LLM engineers
+```
+
+```python
+tokenizer.batch_decode(tokens)
+['<|begin_of_text|>',
+ 'I',
+ ' am',
+ ' excited',
+ ' to',
+ ' show',
+ ' Token',
+ 'izers',
+ ' in',
+ ' action',
+ ' to',
+ ' my',
+ ' L',
+ 'LM',
+ ' engineers']
+```
+
+```python
+# tokenizer.vocab
+tokenizer.get_added_vocab()
+{'<|begin_of_text|>': 128000,
+ '<|end_of_text|>': 128001,
+ '<|reserved_special_token_0|>': 128002,
+ '<|reserved_special_token_1|>': 128003,
+ '<|finetune_right_pad_id|>': 128004,
+ '<|reserved_special_token_2|>': 128005,
+ '<|start_header_id|>': 128006,
+ '<|end_header_id|>': 128007,
+ '<|eom_id|>': 128008,
+ '<|eot_id|>': 128009,
+ '<|python_tag|>': 128010,
+ '<|reserved_special_token_3|>': 128011,
+ '<|reserved_special_token_4|>': 128012,
+ '<|reserved_special_token_5|>': 128013,
+ '<|reserved_special_token_6|>': 128014,
+ '<|reserved_special_token_7|>': 128015,
+ '<|reserved_special_token_8|>': 128016,
+ '<|reserved_special_token_9|>': 128017,
+ '<|reserved_special_token_10|>': 128018,
+```
+
+## Instruct variants of models
+
+Many models have a variant that has been trained for use in Chats.
+These are typically labelled with the word "Instruct" at the end.
+They have been trained to expect prompts with a particular format that includes system, user and assistant prompts.
+
+There is a utility method `apply_chat_template` that will convert from the messages list format we are familiar with, into the right input prompt for this model.
+
+```python
+tokenizer = AutoTokenizer.from_pretrained('meta-llama/Meta-Llama-3.1-8B-Instruct', trust_remote_code=True)
+```
+
+```python
+messages = [
+    {"role": "system", "content": "You are a helpful assistant"},
+    {"role": "user", "content": "Tell a light-hearted joke for a room of Data Scientists"}
+  ]
+
+prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+print(prompt)
+
+<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+
+Cutting Knowledge Date: December 2023
+Today Date: 26 Jul 2024
+
+You are a helpful assistant<|eot_id|><|start_header_id|>user<|end_header_id|>
+
+Tell a light-hearted joke for a room of Data Scientists<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+```
+
+## Trying new models
+
+We will now work with 3 models:
+
+Phi3 from Microsoft Qwen2 from Alibaba Cloud Starcoder2 from BigCode (ServiceNow + HuggingFace + NVidia)
+
+```python
+PHI3_MODEL_NAME = "microsoft/Phi-3-mini-4k-instruct"
+QWEN2_MODEL_NAME = "Qwen/Qwen2-7B-Instruct"
+STARCODER2_MODEL_NAME = "bigcode/starcoder2-3b"
+```
+
+```python
+phi3_tokenizer = AutoTokenizer.from_pretrained(PHI3_MODEL_NAME)
+
+text = "I am excited to show Tokenizers in action to my LLM engineers"
+print(tokenizer.encode(text))
+print()
+tokens = phi3_tokenizer.encode(text)
+print(phi3_tokenizer.batch_decode(tokens))
+
+[128000, 40, 1097, 12304, 311, 1501, 9857, 12509, 304, 1957, 311, 856, 445, 11237, 25175]
+
+['I', 'am', 'excited', 'to', 'show', 'Token', 'izers', 'in', 'action', 'to', 'my', 'L', 'LM', 'engine', 'ers']
+```
+
+```python
+print(tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True))
+print()
+print(phi3_tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True))
+
+<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+
+Cutting Knowledge Date: December 2023
+Today Date: 26 Jul 2024
+
+You are a helpful assistant<|eot_id|><|start_header_id|>user<|end_header_id|>
+
+Tell a light-hearted joke for a room of Data Scientists<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+
+
+
+<|system|>
+You are a helpful assistant<|end|>
+<|user|>
+Tell a light-hearted joke for a room of Data Scientists<|end|>
+<|assistant|>
+```
+
+```python
+qwen2_tokenizer = AutoTokenizer.from_pretrained(QWEN2_MODEL_NAME)
+
+text = "I am excited to show Tokenizers in action to my LLM engineers"
+print(tokenizer.encode(text))
+print()
+print(phi3_tokenizer.encode(text))
+print()
+print(qwen2_tokenizer.encode(text))
+
+[128000, 40, 1097, 12304, 311, 1501, 9857, 12509, 304, 1957, 311, 856, 445, 11237, 25175]
+
+[306, 626, 24173, 304, 1510, 25159, 19427, 297, 3158, 304, 590, 365, 26369, 6012, 414]
+
+[40, 1079, 12035, 311, 1473, 9660, 12230, 304, 1917, 311, 847, 444, 10994, 24198]
+```
+
+```python
+starcoder2_tokenizer = AutoTokenizer.from_pretrained(STARCODER2_MODEL_NAME, trust_remote_code=True)
+code = """
+def hello_world(person):
+  print("Hello", person)
+"""
+tokens = starcoder2_tokenizer.encode(code)
+for token in tokens:
+  print(f"{token}={starcoder2_tokenizer.decode(token)}")
+
+222=
+
+610=def
+17966= hello
+100=_
+5879=world
+45=(
+6427=person
+731=):
+353=
+ 
+1489= print
+459=("
+8302=Hello
+411=",
+4944= person
+46=)
+222=
+
+```
+
+
+
+
+
+## Day 3总结
+
+what can i now do
+
+- Confidently code with Frontier Models
+- Build a multi-modal AI Assistant with Tools
+- Use HuggingFace pipelines and tokenizers
+
+## Day4 start
+
+## Models
+
+Looking at the lower level API of Transformers - the models that wrap PyTorch code for the transformers themselves.
+
+This notebook can run on a low-cost or free T4 runtime.
+
+```python
+!pip install -q requests torch bitsandbytes transformers sentencepiece accelerate
+```
+
+```python
+from google.colab import userdata
+from huggingface_hub import login
+from transformers import AutoTokenizer, AutoModelForCausalLM, TextStreamer, BitsAndBytesConfig
+import torch
+```
+
+```python
+hf_token = userdata.get('HF_TOKEN')
+login(hf_token, add_to_git_credential=True)
+```
+
+```python
+# instruct models
+
+LLAMA = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+PHI3 = "microsoft/Phi-3-mini-4k-instruct"
+GEMMA2 = "google/gemma-2-2b-it"
+QWEN2 = "Qwen/Qwen2-7B-Instruct" # exercise for you
+MIXTRAL = "mistralai/Mixtral-8x7B-Instruct-v0.1" # If this doesn't fit it your GPU memory, try others from the hub
+```
+
+```python
+messages = [
+    {"role": "system", "content": "You are a helpful assistant"},
+    {"role": "user", "content": "Tell a light-hearted joke for a room of Data Scientists"}
+  ]
+```
+
+```python
+# Quantization Config - this allows us to load the model into memory and use less memory
+
+quant_config = BitsAndBytesConfig(
+	load_in_4bit=True,
+    bnb_4bit_use_double_quant=True,
+    bnb_4bit_compute_dtype=torch.bfloat16,
+    bnb_4bit_quant_type="nf4"
+)
+```
+
+```python
+# Tokenizer
+
+tokenizer = AutoTokenizer.from_pretrained(LLAMA)
+tokenizer.pad_token = tokenizer.eos_token
+inputs = tokenizer.apply_chat_template(messages, return_tensors="pt").to("cuda")
+```
+
+```python
+# The model
+
+model = AutoModelForCausalLM.from_pretrained(LLAMA, device_map="auto", quantization_config=quant_config)
+```
+
+```python
+model
+LlamaForCausalLM(
+  (model): LlamaModel(
+    (embed_tokens): Embedding(128256, 4096)
+    (layers): ModuleList(
+      (0-31): 32 x LlamaDecoderLayer(
+        (self_attn): LlamaSdpaAttention(
+          (q_proj): Linear4bit(in_features=4096, out_features=4096, bias=False)
+          (k_proj): Linear4bit(in_features=4096, out_features=1024, bias=False)
+          (v_proj): Linear4bit(in_features=4096, out_features=1024, bias=False)
+          (o_proj): Linear4bit(in_features=4096, out_features=4096, bias=False)
+          (rotary_emb): LlamaRotaryEmbedding()
+        )
+        (mlp): LlamaMLP(
+          (gate_proj): Linear4bit(in_features=4096, out_features=14336, bias=False)
+          (up_proj): Linear4bit(in_features=4096, out_features=14336, bias=False)
+          (down_proj): Linear4bit(in_features=14336, out_features=4096, bias=False)
+          (act_fn): SiLU()
+        )
+        (input_layernorm): LlamaRMSNorm((4096,), eps=1e-05)
+        (post_attention_layernorm): LlamaRMSNorm((4096,), eps=1e-05)
+      )
+    )
+    (norm): LlamaRMSNorm((4096,), eps=1e-05)
+    (rotary_emb): LlamaRotaryEmbedding()
+  )
+  (lm_head): Linear(in_features=4096, out_features=128256, bias=False)
+)
+
+outputs = model.generate(inputs, max_new_tokens=80)
+print(tokenizer.decode(outputs[0]))
+```
+
+```python
+# Clean up
+
+del inputs, outputs, model
+torch.cuda.empty_cache()
+```
+
+## A couple of quick notes on the next block of code:
+
+I'm using a HuggingFace utility called TextStreamer so that results stream back. To stream results, we simply replace:
+
+`outputs = model.generate(inputs, max_new_tokens=80)`
+
+With:
+`streamer = TextStreamer(tokenizer)`
+`outputs = model.generate(inputs, max_new_tokens=80, streamer=streamer)`
+
+Also I've added the argument `add_generation_prompt=True` to my call to create the Chat template. This ensures that Phi generates a response to the question, instead of just predicting how the user prompt continues. Try experimenting with setting this to False to see what happens. You can read about this argument here:
+
+[https://huggingface.co/docs/transformers/main/en/chat_templating#what-are-generation-prompts](https://www.google.com/url?q=https%3A%2F%2Fhuggingface.co%2Fdocs%2Ftransformers%2Fmain%2Fen%2Fchat_templating%23what-are-generation-prompts)
+
+```python
+# Wrapping everything in a function - and adding Streaming and generation prompts
+
+def generate(model, messages):
+    tokenizer = AutoTokenizer.from_pretrained(model)
+  tokenizer.pad_token = tokenizer.eos_token
+  inputs = tokenizer.apply_chat_template(messages, return_tensors="pt", add_generation_prompt=True).to("cuda")
+  streamer = TextStreamer(tokenizer)
+  model = AutoModelForCausalLM.from_pretrained(model, device_map="auto", quantization_config=quant_config)
+  outputs = model.generate(inputs, max_new_tokens=80, streamer=streamer)
+  del tokenizer, streamer, model, inputs, outputs
+  torch.cuda.empty_cache()
+```
+
+```python
+generate(PHI3, messages)
+
+```
+
+## Accessing Gemma from Google
+
+A student let me know (thank you, Alex K!) that Google also now requires you to accept their terms in HuggingFace before you use Gemma.
+
+Please visit their model page at this link and confirm you're OK with their terms, so that you're granted access.
+
+[https://huggingface.co/google/gemma-2-2b-it](https://www.google.com/url?q=https%3A%2F%2Fhuggingface.co%2Fgoogle%2Fgemma-2-2b-it)
+
+```python
+messages = [
+    {"role": "user", "content": "Tell a light-hearted joke for a room of Data Scientists"}
+  ]
+generate(GEMMA2, messages)
+generate(QWEN2,messages)
+```
+
+
+
+## Day4 总结
+
+What can i now do
+
+- Confidently code with Frontier Models
+- Build a multi-modal AI Assistant with Tools
+- Use HuggingFace pipelines, tokenizers and models
+
+## Day 5start
+
+## Day 5总结
+
+What can i now do
+
+- Confidently code with Frontier Models
+- Build a multi-modal AI Assistant with Tools
+- Build an LLM solution combining frontier and open-source models
+
